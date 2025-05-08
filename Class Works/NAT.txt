@@ -1,0 +1,69 @@
+Static Routing Between EDGE and ISP
+-----------------------------------------------------
+Fri Oct 4 09:31:31 2024   ICE-EDGE   Edge(config)#ip route 0.0.0.0 0.0.0.0 11.11.11.1
+Fri Oct 4 09:39:00 2024   ISP   ISP(config)#ip route 116.56.65.0 255.255.255.248 11.11.11.2
+
+Block Private IP Access to the Internet
+-----------------------------------------------------
+Fri Oct 4 09:33:50 2024   ISP   ISP(config)#ip access-list standard Block-Private-IP
+Fri Oct 4 09:34:43 2024   ISP   ISP(config-std-nacl)#deny 10.0.0.0 0.255.255.255
+Fri Oct 4 09:35:09 2024   ISP   ISP(config-std-nacl)#deny 172.16.0.0 0.15.255.255
+Fri Oct 4 09:35:19 2024   ISP   ISP(config-std-nacl)#deny 192.168.0.0 0.0.255.255
+Fri Oct 4 09:35:43 2024   ISP   ISP(config-std-nacl)#permit any
+Fri Oct 4 09:35:45 2024   ISP   ISP(config-std-nacl)#exit
+
+Fri Oct 4 09:36:12 2024   ISP   ISP(config)#int s0/1/0
+Fri Oct 4 09:36:29 2024   ISP   ISP(config-if)#ip access-group Block-Private-IP in
+Fri Oct 4 09:36:30 2024   ISP   ISP(config-if)#exit
+
+Static NAT
+---------------------------------------------------------
+Fri Oct 4 09:41:59 2024   ICE-EDGE   Edge(config)#ip nat inside source static 172.16.3.2 116.56.65.1
+Fri Oct 4 09:44:00 2024   ICE-EDGE   Edge(config)#int f1/0
+Fri Oct 4 09:44:03 2024   ICE-EDGE   Edge(config-if)#ip nat inside 
+Fri Oct 4 09:44:04 2024   ICE-EDGE   Edge(config-if)#exit
+
+Fri Oct 4 09:44:07 2024   ICE-EDGE   Edge(config)#int s0/3/0
+Fri Oct 4 09:44:10 2024   ICE-EDGE   Edge(config-if)#ip nat outside 
+Fri Oct 4 09:44:11 2024   ICE-EDGE   Edge(config-if)#exit
+
+View NAT Table
+-----------------------------------------------------
+Fri Oct 4 09:46:23 2024   ICE-EDGE   Edge(config)#do show ip nat trasnlations
+
+Dynamic Pool Based NAT
+------------------------------------------------------------
+a. create public IP pool--------------
+Fri Oct 4 09:51:01 2024   ICE-EDGE   Edge(config)#ip nat pool Public-IP-Pool 116.56.65.2 116.56.65.6 netmask 255.255.255.248
+
+b. mark traffic that is allow NAT----------------
+Fri Oct 4 09:52:49 2024   ICE-EDGE   Edge(config)#ip access-list standard NAT-Eligible
+Fri Oct 4 09:53:20 2024   ICE-EDGE   Edge(config-std-nacl)#permit 172.16.1.0 0.0.0.255
+Fri Oct 4 09:53:31 2024   ICE-EDGE   Edge(config-std-nacl)#exit
+
+c. configure NAT--------------------
+Fri Oct 4 09:54:59 2024   ICE-EDGE   Edge(config)#ip nat inside source list NAT-Eligible pool  Public-IP-Pool
+
+d. define inside/outside area-------------------
+Fri Oct 4 09:55:39 2024   ICE-EDGE   Edge(config)#int f0/0
+Fri Oct 4 09:55:43 2024   ICE-EDGE   Edge(config-if)#ip nat inside 
+Fri Oct 4 09:55:44 2024   ICE-EDGE   Edge(config-if)#ex
+Fri Oct 4 09:55:46 2024   ICE-EDGE   Edge(config)#int s0/3/0
+Fri Oct 4 09:55:48 2024   ICE-EDGE   Edge(config-if)#ip nat outside 
+Fri Oct 4 09:55:48 2024   ICE-EDGE   Edge(config-if)#ex
+
+PAT
+-----------------------------------------
+Fri Oct 4 10:21:37 2024   ICE-EDGE   Edge(config)#ip access-list standard PAT-Eligible
+Fri Oct 4 10:21:48 2024   ICE-EDGE   Edge(config-std-nacl)#permit 172.16.2.0 0.0.0.255
+Fri Oct 4 10:21:50 2024   ICE-EDGE   Edge(config-std-nacl)#deny any
+Fri Oct 4 10:21:51 2024   ICE-EDGE   Edge(config-std-nacl)#exit
+
+Fri Oct 4 10:22:32 2024   ICE-EDGE   Edge(config)#ip nat inside source list PAT-Eligible interface s0/3/0 overload
+Fri Oct 4 10:23:01 2024   ICE-EDGE   Edge(config)#int f0/1
+Fri Oct 4 10:23:03 2024   ICE-EDGE   Edge(config-if)#ip nat i n
+Fri Oct 4 10:23:05 2024   ICE-EDGE   Edge(config-if)#ip nat inside 
+Fri Oct 4 10:23:06 2024   ICE-EDGE   Edge(config-if)#ex
+Fri Oct 4 10:23:08 2024   ICE-EDGE   Edge(config)#int s0/3/0
+Fri Oct 4 10:23:10 2024   ICE-EDGE   Edge(config-if)#ip nat outside 
+Fri Oct 4 10:23:53 2024   ICE-EDGE   Edge(config-if)#exit

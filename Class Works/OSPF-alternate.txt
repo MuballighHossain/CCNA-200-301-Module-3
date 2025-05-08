@@ -1,0 +1,17 @@
+OSPF configuration using IP OSPF command
+--------------------------------------------------------
+Fri Oct 4 12:28:54 2024   BR1   BR1(config)#int f0/0
+Fri Oct 4 12:29:06 2024   BR1   BR1(config-if)#ip ospf 110 area 0
+Fri Oct 4 12:29:09 2024   BR1   BR1(config-if)#exit
+
+Fri Oct 4 12:29:11 2024   BR1   BR1(config)#int f0/1
+Fri Oct 4 12:29:13 2024   BR1   BR1(config-if)#ip ospf 110 area 0
+Fri Oct 4 12:29:13 2024   BR1   BR1(config-if)#ex
+
+Fri Oct 4 12:30:03 2024   BR2   BR2(config)#int f0/0
+Fri Oct 4 12:30:10 2024   BR2   BR2(config-if)#ip ospf 110 area 0
+Fri Oct 4 12:30:10 2024   BR2   BR2(config-if)#ex
+Fri Oct 4 12:30:12 2024   BR2   BR2(config)#int f0/1
+Fri Oct 4 12:30:14 2024   BR2   BR2(config-if)#ip ospf 110 area 0
+Fri Oct 4 12:30:14 2024   BR2   BR2(config-if)#ex
+

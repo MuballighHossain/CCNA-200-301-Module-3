@@ -1,0 +1,99 @@
+First COnfigure basic IP on router interface and end devices
+
+Static Routing Between BR2 and ISP
+==========================================================
+Fri Sep 20 09:55:30 2024   BR2   BR2(config)#ip route 0.0.0.0 0.0.0.0 11.11.11.1
+Fri Sep 20 09:55:49 2024   ISP   ISP(config)#ip route  172.16.0.0 255.240.0.0 11.11.11.2
+
+
+OSPFv2
+==========================================================
+Fri Sep 20 09:58:09 2024   BR2   BR2(config)#do show ip route connected
+Fri Sep 20 09:58:50 2024   BR2   BR2(config)#router ospf 113
+Fri Sep 20 10:02:10 2024   BR2   BR2(config-router)#network 172.16.2.0 0.0.0.127 area 0
+Fri Sep 20 10:02:37 2024   BR2   BR2(config-router)#network 172.16.10.0 0.0.0.3 area 0
+Fri Sep 20 10:04:38 2024   BR2   BR2(config-router)#passive-interface f0/0
+Fri Sep 20 10:06:09 2024   BR2   BR2(config-router)#default-information originate 
+Fri Sep 20 10:06:43 2024   BR2   BR2(config-router)#router-id 2.2.2.2
+Fri Sep 20 10:08:06 2024   BR2   BR2(config-router)#end
+Fri Sep 20 10:08:16 2024   BR2   BR2#reload
+
+Fri Sep 20 10:08:46 2024   BR1   BR1(config)#do show ip route connected
+Fri Sep 20 10:08:55 2024   BR1   BR1(config)#router ospf 113
+Fri Sep 20 10:09:16 2024   BR1   BR1(config-router)#network 172.16.1.0 0.0.0.255 area 0
+Fri Sep 20 10:09:27 2024   BR1   BR1(config-router)#network 172.16.10.0 0.0.0.3 area 0
+Fri Sep 20 10:09:34 2024   BR1   BR1(config-router)#passive-interface f/00
+Fri Sep 20 10:09:38 2024   BR1   BR1(config-router)#passive-interface f0/0
+Fri Sep 20 10:10:33 2024   BR1   BR1(config-router)#router-id 1.1.1.1
+Fri Sep 20 10:10:36 2024   BR1   BR1(config-router)#end
+Fri Sep 20 10:10:52 2024   BR1   BR1#reload
+
+
+After this, we extended the topology to BR3 and BR4
+===============================================================
+Fri Sep 20 10:19:46 2024   BR2   BR2(config)#do sh ip route con
+Fri Sep 20 10:19:59 2024   BR2   BR2(config)#router ospf 113
+Fri Sep 20 10:20:35 2024   BR2   BR2(config-router)#net 172.16.11.0 0.0.0.7 area 1
+Fri Sep 20 10:20:46 2024   BR2   BR2(config-router)#exit
+
+Fri Sep 20 10:21:10 2024   BR3   BR3(config)#do sh ip route con
+Fri Sep 20 10:21:26 2024   BR3   BR3(config)#router ospf 113
+Fri Sep 20 10:21:36 2024   BR3   BR3(config-router)#net 172.16.3.0 0.0.0.127 area 1
+Fri Sep 20 10:21:46 2024   BR3   BR3(config-router)#net 172.16.11.0 0.0.0.3 area 1
+Fri Sep 20 10:22:06 2024   BR3   BR3(config-router)#passive-interface loopback 0
+Fri Sep 20 10:28:59 2024   BR3   BR3(config-router)#router-id 3.3.3.3
+Fri Sep 20 10:22:08 2024   BR3   BR3(config-router)#end
+Fri Sep 20 10:29:03 2024   BR3   BR3#reload
+
+Fri Sep 20 10:21:10 2024   BR4   BR4(config)#do sh ip route con
+Fri Sep 20 10:22:20 2024   BR4   BR4(config)#router ospf 113
+Fri Sep 20 10:22:56 2024   BR4   BR4(config-router)#net 172.16.4.0 0.0.0.63 area 1
+Fri Sep 20 10:23:10 2024   BR4   BR4(config-router)#net 172.16.11.0 0.0.0.7 area 1
+Fri Sep 20 10:23:13 2024   BR4   BR4(config-router)#passive-interface loopback 0
+Fri Sep 20 10:29:18 2024   BR4   BR4(config-router)#router-id 4.4.4.4
+Fri Sep 20 10:29:19 2024   BR4   BR4(config-router)#end
+Fri Sep 20 10:29:20 2024   BR4   BR4#reload
+
+Fri Sep 20 10:25:33 2024   BR2   BR2#show ip ospf interface f0/1
+
+Hello and Dead Timer change
+==========================================
+Fri Sep 20 10:36:47 2024   BR2   BR2(config)#int f0/1
+Fri Sep 20 10:36:56 2024   BR2   BR2(config-if)#ip ospf hello-interval 20
+Fri Sep 20 10:37:13 2024   BR2   BR2(config-if)#ip ospf dead-interval 80
+Fri Sep 20 10:37:15 2024   BR2   BR2(config-if)#ex
+
+Fri Sep 20 10:38:01 2024   BR3   BR3(config)#int f0/0
+Fri Sep 20 10:38:05 2024   BR3   BR3(config-if)#ip ospf hello-interval 20
+Fri Sep 20 10:38:09 2024   BR3   BR3(config-if)#ip ospf dead-interval 80
+Fri Sep 20 10:38:10 2024   BR3   BR3(config-if)#ex
+
+Fri Sep 20 10:38:20 2024   BR4   BR4(config)#int f0/0
+Fri Sep 20 10:38:26 2024   BR4   BR4(config-if)#ip ospf hello-interval 20
+Fri Sep 20 10:38:33 2024   BR4   BR4(config-if)#ip ospf dead-interval 80
+Fri Sep 20 10:38:36 2024   BR4   BR4(config-if)#exit
+
+Force DR election
+=========================================
+Fri Sep 20 10:39:58 2024   BR4   BR4(config)#int f0/0
+Fri Sep 20 10:40:02 2024   BR4   BR4(config-if)#ip ospf priority 100
+Fri Sep 20 10:40:07 2024   BR4   BR4(config)#exit
+Fri Sep 20 10:40:14 2024   BR2   BR2(config)#ex
+Fri Sep 20 10:40:19 2024   BR3   BR3#reload
+Fri Sep 20 10:40:25 2024   BR2   BR2#reload
+Fri Sep 20 10:40:28 2024   BR4   BR4#reload
+
+view OSPF process
+---------------------------
+Fri Sep 20 10:43:29 2024   BR2   BR2#debug ip ospf events 
+Fri Sep 20 10:44:15 2024   BR2   BR2#undebug all
+
+
+View Adjacency Database
+-----------------------------------------
+Fri Sep 20 10:44:42 2024   BR2   BR2#show ip ospf neighbor 
+
+View Routing table
+-----------------------------------------
+Fri Sep 20 10:45:19 2024   BR2   BR2#show ip route 
+

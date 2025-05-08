@@ -1,0 +1,142 @@
+OSPF
+===================
+Fri Sep 27 09:01:56 2024   BR1   BR1#show ip route connected
+
+Fri Sep 27 09:02:13 2024   BR1   BR1(config)#router ospf 113
+Fri Sep 27 09:02:26 2024   BR1   BR1(config-router)#network 172.16.1.0 0.0.0.255 area 0
+Fri Sep 27 09:02:35 2024   BR1   BR1(config-router)#network 172.16.2.0 0.0.0.127 area 0
+Fri Sep 27 09:02:43 2024   BR1   BR1(config-router)#network 172.16.10.0 0.0.0.3 area 0
+Fri Sep 27 09:02:52 2024   BR1   BR1(config-router)#passive-interface f/0
+Fri Sep 27 09:02:55 2024   BR1   BR1(config-router)#passive-interface f0/0
+Fri Sep 27 09:02:56 2024   BR1   BR1(config-router)#passive-interface f0/1
+Fri Sep 27 09:03:03 2024   BR1   BR1(config-router)#exit
+
+Fri Sep 27 09:03:23 2024   BR2   BR2(config)#do sh ip route connected
+Fri Sep 27 09:03:28 2024   BR2   BR2(config)#router ospf 113
+Fri Sep 27 09:03:38 2024   BR2   BR2(config-router)#network 172.16.3.0 0.0.0.127 area 0
+Fri Sep 27 09:03:47 2024   BR2   BR2(config-router)#network 172.16.4.0 0.0.0.127 area 0
+Fri Sep 27 09:03:54 2024   BR2   BR2(config-router)#network 172.16.10.0 0.0.0.3 area 0
+Fri Sep 27 09:03:57 2024   BR2   BR2(config-router)#passive-interface f0/0
+Fri Sep 27 09:04:02 2024   BR2   BR2(config-router)#passive-interface f0/1
+Fri Sep 27 09:04:14 2024   BR2   BR2(config-router)#exit
+
+Standard ACL
+=========================================
+1. PC1 cannot communicate with IT
+-----------------------------------------
+{Numbered ACL}
+Fri Sep 27 09:26:37 2024   BR1   BR1(config)#access-list 16 deny host 172.16.3.2
+Fri Sep 27 09:42:44 2024   BR1   BR1(config)#access-list 16 permit any
+Fri Sep 27 09:27:05 2024   BR1   BR1(config)#access-list 16 remark PC1 cannot reach to Sales
+
+Fri Sep 27 09:28:15 2024   BR1   BR1(config)#int f0/0
+Fri Sep 27 09:28:47 2024   BR1   BR1(config-if)#ip access-group 16 out
+Fri Sep 27 09:28:49 2024   BR1   BR1(config-if)#exit
+
+2. Only PC0 from IT should be able to remote access router/switches. example for BR1
+-------------------------------------------------------------------------------------
+{Named ACL}
+Fri Sep 27 11:34:55 2024   BR1   BR1(config)#ip access-list standard Telnet-Access
+Fri Sep 27 11:35:38 2024   BR1   BR1(config-std-nacl)#permit host 172.16.1.2
+Fri Sep 27 11:35:45 2024   BR1   BR1(config-std-nacl)#deny any
+Fri Sep 27 11:35:46 2024   BR1   BR1(config-std-nacl)#exit
+
+Fri Sep 27 11:38:53 2024   BR1   BR1(config)#line vty 0 4
+Fri Sep 27 11:39:06 2024   BR1   BR1(config-line)#access-class Telnet-Access in
+Fri Sep 27 11:39:09 2024   BR1   BR1(config-line)#exit
+
+
+Extended ACL
+=====================================
+3. PC3 cannot browse www.ice.edu
+--------------------------------------------------
+Fri Sep 27 10:02:13 2024   BR1   BR1(config)#ip access-list extended Block-Specific-Services
+Fri Sep 27 10:08:22 2024   BR1   BR1(config-ext-nacl)#deny tcp 172.16.2.2 0.0.0.0 172.16.4.4 0.0.0.0 eq 80
+Fri Sep 27 10:09:09 2024   BR1   BR1(config-ext-nacl)#permit ip any any
+Fri Sep 27 10:09:57 2024   BR1   BR1(config-ext-nacl)#exit
+
+Fri Sep 27 10:11:28 2024   BR1   BR1(config)#int f0/1
+Fri Sep 27 10:11:40 2024   BR1   BR1(config-if)#ip access-group Block-Specific-Services in
+Fri Sep 27 10:11:42 2024   BR1   BR1(config-if)#exit
+
+4. IT cannot ping www.cisco.com
+---------------------------------------------------(added another line in existing ACL)
+Fri Sep 27 10:20:30 2024   BR1   BR1(config)#ip access-list extended Block-Specific-Services
+Fri Sep 27 10:21:40 2024   BR1   BR1(config-ext-nacl)#deny icmp 172.16.1.0 0.0.0.255 172.16.4.3 0.0.0.0 
+Fri Sep 27 10:22:31 2024   BR1   BR1(config-ext-nacl)#exit
+
+Fri Sep 27 10:22:33 2024   BR1   BR1(config)#int f0/0
+Fri Sep 27 10:22:37 2024   BR1   BR1(config-if)#ip access-group Block-Specific-Services in
+Fri Sep 27 10:22:38 2024   BR1   BR1(config-if)#exit
+
+* But it did not work cause ACL works in sequential order.
+Fri Sep 27 10:23:05 2024   BR1   BR1(config)#do show ip access-lists
+Standard IP access list 16
+    10 deny host 172.16.3.2
+    20 permit any (8 match(es))
+Extended IP access list Block-Specific-Services
+    10 deny tcp host 172.16.2.2 host 172.16.4.4 eq www (12 match(es))
+    20 permit ip any any (12 match(es))
+    30 deny icmp 172.16.1.0 0.0.0.255 host 172.16.4.3
+
+* We need tp modify ACL
+Fri Sep 27 10:25:39 2024   BR1   BR1(config)#ip access-list extended Block-Specific-Services
+Fri Sep 27 10:25:46 2024   BR1   BR1(config-ext-nacl)#no deny icmp 172.16.1.0 0.0.0.255 172.16.4.3 0.0.0.0 
+Fri Sep 27 10:26:02 2024   BR1   BR1(config-ext-nacl)#11 deny icmp 172.16.1.0 0.0.0.255 172.16.4.3 0.0.0.0 
+Fri Sep 27 10:26:04 2024   BR1   BR1(config-ext-nacl)#exit
+
+Fri Sep 27 10:28:00 2024   BR1   BR1(config)#do sh ip access-lists
+Standard IP access list 16
+    10 deny host 172.16.3.2
+    20 permit any (22 match(es))
+Extended IP access list Block-Specific-Services
+    10 deny tcp host 172.16.2.2 host 172.16.4.4 eq www (12 match(es))
+    11 deny icmp 172.16.1.0 0.0.0.255 host 172.16.4.3 (4 match(es))
+    20 permit ip any any (28 match(es))
+
+*now it will work. 
+
+5. PC0 cannot use ftp service
+-------------------------------------------------------
+Fri Sep 27 10:31:41 2024   BR1   BR1(config)#ip access-list extended Block-Specific-Services
+Fri Sep 27 10:33:36 2024   BR1   BR1(config-ext-nacl)#12 deny tcp host 172.16.1.2 host 172.16.4.2 range 20 21
+Fri Sep 27 10:33:36 2024   BR1   BR1(config-ext-nacl)#exit
+
+
+NTP, SYSLOG, SNMP
+---------------------------------------------
+BR1(config)#ntp server 172.16.4.5
+BR1(config)#ntp update-calendar 
+BR1#show clock detail 
+
+BR1(config)#logging 172.16.4.5
+BR1(config)#service timestamps log datetime msec 
+
+BR1(config)#snmp-server community cisco ro
+BR1(config)#snmp-server community cisco rw
+
+
+To enable and disable CDP:
+-------------------------------------------
+BR1(config)#cdp run 
+BR1(config)#no cdp run 
+
+BR1(config)#interface fa0/0
+BR1(config-if)#no cdp enable 
+BR1(config-if)#exit 
+
+BR1(config)#interface fa0/0
+BR1(config-if)#cdp enable 
+BR1(config-if)#exit 
+
+BR1#show cdp neighbors 
+
+LLDP 
+-----------------------------------
+Switch(config)#lldp run 
+
+Switch(config)#no lldp run 
+Switch(config)#interface fa0/1
+Switch(config-if)#lldp receive 
+Switch(config-if)#lldp transmit
+Switch(config-if)#exit 

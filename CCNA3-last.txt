@@ -1,0 +1,476 @@
+task-list-----
+a. VLAN, VTP, Inter VLAN Routing (router on a stick)
+b. DHCPv4 (router as a dhcp server)
+c. EtherChannel
+d. wirelss config
+e. router interface configuration
+f. Static Routing
+g. OSPFv2 between BR1 and BR2
+h. block private ip access to internet
+i. Configure NAT. BR1 teachers and officers can go to internet. use pool based NAT
+  PAT for BR2 network. 
+j. Configure NTP and SYSLOG
+k. officer lan cannot browse cisco.com
+l. SSH on routers and switches
+m. portsecurity, portfast, unused ports shutdown
+n. backup on tftp server
+
+1. VLAN Creation
+===================================
+Fri Oct 18 09:10:57 2024   BR-Core   Switch>enable
+Fri Oct 18 09:10:59 2024   BR-Core   Switch#conf t
+Fri Oct 18 09:11:05 2024   BR-Core   Switch(config)#hostname BR1-Core
+Fri Oct 18 09:11:21 2024   BR-Core   BR-Core(config)#do show vlan brief
+
+Fri Oct 18 09:11:36 2024   BR-Core   BR1-Core(config)#vlan 9
+Fri Oct 18 09:11:40 2024   BR-Core   BR1-Core(config-vlan)#name native
+Fri Oct 18 09:11:41 2024   BR-Core   BR1-Core(config-vlan)#exit
+Fri Oct 18 09:11:43 2024   BR-Core   BR1-Core(config)#vlan 2
+Fri Oct 18 09:11:48 2024   BR-Core   BR1-Core(config-vlan)#name teacher
+Fri Oct 18 09:11:49 2024   BR-Core   BR1-Core(config-vlan)#exit
+Fri Oct 18 09:11:53 2024   BR-Core   BR1-Core(config)#vlan 3
+Fri Oct 18 09:12:10 2024   BR-Core   BR1-Core(config-vlan)#name officer
+Fri Oct 18 09:12:11 2024   BR-Core   BR1-Core(config-vlan)#exit
+Fri Oct 18 09:12:13 2024   BR-Core   BR1-Core(config)#vlan 4
+Fri Oct 18 09:12:17 2024   BR-Core   BR1-Core(config-vlan)#name wireless
+Fri Oct 18 09:12:18 2024   BR-Core   BR1-Core(config-vlan)#exit
+Fri Oct 18 09:25:57 2024   BR1-Core   BR1-Core(config)#vlan 5
+Fri Oct 18 09:26:00 2024   BR1-Core   BR1-Core(config-vlan)#name voice
+Fri Oct 18 09:26:00 2024   BR1-Core   BR1-Core(config-vlan)#ex
+Fri Oct 18 11:45:10 2024   BR1-Core   BR1-Core(config)#vlan 6
+Fri Oct 18 11:45:15 2024   BR1-Core   BR1-Core(config-vlan)#name management
+Fri Oct 18 11:45:16 2024   BR1-Core   BR1-Core(config-vlan)#ex
+
+2. VTP
+=========================================
+Fri Oct 18 09:12:49 2024   BR-Core   BR1-Core(config)#vtp mode server
+Fri Oct 18 09:13:07 2024   BR-Core   BR1-Core(config)#vtp domain aiub
+Fri Oct 18 09:13:14 2024   BR-Core   BR1-Core(config)#vtp password ccna
+
+Fri Oct 18 09:20:11 2024   BR1-ALSW1   Switch(config)#hostname BR1-ALSW1
+Fri Oct 18 09:20:22 2024   BR1-ALSW1   BR1-ALSW1(config)#vtp mode client 
+Fri Oct 18 09:20:26 2024   BR1-ALSW1   BR1-ALSW1(config)#vtp domain aiub
+Fri Oct 18 09:20:29 2024   BR1-ALSW1   BR1-ALSW1(config)#vtp password ccna
+
+Fri Oct 18 09:23:55 2024   BR1-ALSW2   Switch(config)#hostname BR1-ALSW2
+Fri Oct 18 09:24:01 2024   BR1-ALSW2   BR1-ALSW2(config)#vtp mode client 
+Fri Oct 18 09:24:04 2024   BR1-ALSW2   BR1-ALSW2(config)#vtp domain aiub
+Fri Oct 18 09:24:07 2024   BR1-ALSW2   BR1-ALSW2(config)#vtp password ccna
+
+3. Trunk Mode + DTP disable + Native VLAN
+==========================================
+Fri Oct 18 09:17:37 2024   BR-Core   BR-Core(config)#int range f0/2-3, f0/9-10
+Fri Oct 18 09:18:17 2024   BR-Core   BR-Core(config-if-range)#switchport trunk encapsulation dot1q 
+Fri Oct 18 09:18:25 2024   BR-Core   BR-Core(config-if-range)#switchport mode trunk
+Fri Oct 18 09:18:50 2024   BR-Core   BR-Core(config-if-range)#switchport trunk native vlan 9
+Fri Oct 18 09:19:10 2024   BR-Core   BR-Core(config-if-range)#switchport nonegotiate 
+Fri Oct 18 09:18:52 2024   BR-Core   BR-Core(config-if-range)#exit
+
+Fri Oct 18 09:20:58 2024   BR1-ALSW1   BR1-ALSW1(config)#int range f0/2-3, f0/7
+Fri Oct 18 09:21:07 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport mode trunk 
+Fri Oct 18 09:21:14 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport trunk native vlan 9
+Fri Oct 18 09:21:33 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport nonegotiate 
+Fri Oct 18 09:21:35 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#exit
+
+Fri Oct 18 09:24:24 2024   BR1-ALSW2   BR1-ALSW2(config)#int range f0/7, f0/9-10
+Fri Oct 18 09:24:29 2024   BR1-ALSW2   BR1-ALSW2(config-if-range)#switchport mode trunk 
+Fri Oct 18 09:24:32 2024   BR1-ALSW2   BR1-ALSW2(config-if-range)#switchport trunk native vlan 9
+Fri Oct 18 09:24:34 2024   BR1-ALSW2   BR1-ALSW2(config-if-range)#switchport nonegotiate 
+Fri Oct 18 09:24:40 2024   BR1-ALSW2   BR1-ALSW2(config-if-range)#exit
+
+4. VLAN Assign + Voice VLAN
+=========================================== 
+Fri Oct 18 09:22:26 2024   BR1-ALSW1   BR1-ALSW1(config)#int f0/1
+Fri Oct 18 09:22:29 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport mode access 
+Fri Oct 18 09:22:45 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport access vlan 2
+Fri Oct 18 09:23:09 2024   BR1-ALSW1   BR1-ALSW1(config-if)#exit
+Fri Oct 18 09:23:14 2024   BR1-ALSW1   BR1-ALSW1(config)#int f0/4
+Fri Oct 18 09:23:16 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport mode access 
+Fri Oct 18 09:23:22 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport access vlan 3
+Fri Oct 18 09:23:26 2024   BR1-ALSW1   BR1-ALSW1(config-if)#exit
+
+Fri Oct 18 09:25:14 2024   BR1-ALSW2   BR1-ALSW2(config)#int f0/5
+Fri Oct 18 09:25:16 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport mode access 
+Fri Oct 18 09:25:19 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport access vlan 2
+Fri Oct 18 09:25:20 2024   BR1-ALSW2   BR1-ALSW2(config-if)#exit
+
+Fri Oct 18 09:25:22 2024   BR1-ALSW2   BR1-ALSW2(config)#int f0/3
+Fri Oct 18 09:25:24 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport mode access 
+Fri Oct 18 09:25:27 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport access vlan 3
+
+Fri Oct 18 09:26:19 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport voice vlan 5
+Fri Oct 18 09:26:27 2024   BR1-ALSW2   BR1-ALSW2(config-if)#mls qos trust cos 
+Fri Oct 18 09:26:29 2024   BR1-ALSW2   BR1-ALSW2(config-if)#exit
+
+5. Router On A Stick
+=========================================
+Fri Oct 18 09:27:31 2024   BR1   Router>en
+Fri Oct 18 09:27:32 2024   BR1   Router#conf t
+Fri Oct 18 09:27:35 2024   BR1   Router(config)#hostname BR1
+Fri Oct 18 09:28:21 2024   BR1   BR1(config)#int g0/0
+Fri Oct 18 09:28:37 2024   BR1   BR1(config-if)#no shutdown 
+Fri Oct 18 09:28:41 2024   BR1   BR1(config-if)#exit
+
+Fri Oct 18 09:29:51 2024   BR1   BR1(config)#int g0/0.2
+Fri Oct 18 09:30:16 2024   BR1   BR1(config-subif)#encapsulation dot1Q 2
+Fri Oct 18 09:30:27 2024   BR1   BR1(config-subif)#ip add 172.16.2.1 255.255.255.0
+Fri Oct 18 09:30:38 2024   BR1   BR1(config-subif)#description teacher LAN
+Fri Oct 18 09:30:39 2024   BR1   BR1(config-subif)#exit
+Fri Oct 18 09:31:04 2024   BR1   BR1(config)#int g0/0.3
+Fri Oct 18 09:31:10 2024   BR1   BR1(config-subif)#encapsulation dot1Q 3
+Fri Oct 18 09:31:36 2024   BR1   BR1(config-subif)#ip add 172.16.3.1 255.255.255.0
+Fri Oct 18 09:31:44 2024   BR1   BR1(config-subif)#description officer LAN
+Fri Oct 18 09:31:45 2024   BR1   BR1(config-subif)#exit
+Fri Oct 18 09:31:54 2024   BR1   BR1(config)#int g0/0.4
+Fri Oct 18 09:31:58 2024   BR1   BR1(config-subif)#encapsulation dot1Q 4
+Fri Oct 18 09:32:06 2024   BR1   BR1(config-subif)#ip add 172.16.4.1 255.255.255.0
+Fri Oct 18 09:32:12 2024   BR1   BR1(config-subif)#description wireless LAN
+Fri Oct 18 09:32:12 2024   BR1   BR1(config-subif)#ex
+Fri Oct 18 09:32:17 2024   BR1   BR1(config)#int g0/0.5
+Fri Oct 18 09:32:21 2024   BR1   BR1(config-subif)#encapsulation dot1Q 5
+Fri Oct 18 09:32:26 2024   BR1   BR1(config-subif)#ip add 172.16.5.1 255.255.255.0
+Fri Oct 18 09:32:29 2024   BR1   BR1(config-subif)#description voice
+Fri Oct 18 09:32:30 2024   BR1   BR1(config-subif)#ex
+Fri Oct 18 11:45:26 2024   BR1   BR1(config)#int g0/0.6
+Fri Oct 18 11:45:29 2024   BR1   BR1(config-subif)#encapsulation dot1Q 6
+Fri Oct 18 11:45:38 2024   BR1   BR1(config-subif)#ip add 172.16.6.1 255.255.255.128
+Fri Oct 18 11:45:39 2024   BR1   BR1(config-subif)#no sh
+Fri Oct 18 11:45:40 2024   BR1   BR1(config-subif)#ex
+Fri Oct 18 09:32:33 2024   BR1   BR1(config)#int g0/0.9
+Fri Oct 18 09:32:36 2024   BR1   BR1(config-subif)#encapsulation dot1Q 9
+Fri Oct 18 09:32:41 2024   BR1   BR1(config-subif)#ip add 172.16.9.1 255.255.255.0
+Fri Oct 18 09:32:43 2024   BR1   BR1(config-subif)#exit
+
+Fri Oct 18 09:33:46 2024   BR1-Core   BR1-Core(config)#int g0/2 
+Fri Oct 18 09:33:57 2024   BR1-Core   BR1-Core(config-if)#switchport trunk encapsulation dot1q 
+Fri Oct 18 09:35:24 2024   BR1-Core   BR1-Core(config-if)#switchport mode trunk 
+Fri Oct 18 09:35:29 2024   BR1-Core   BR1-Core(config-if)#switchport trunk native vlan 9
+Fri Oct 18 09:35:31 2024   BR1-Core   BR1-Core(config-if)#exit
+
+6. DHCP Pool
+====================================
+Fri Oct 18 09:36:58 2024   BR1   BR1(config)#ip dhcp pool teacher
+Fri Oct 18 09:37:09 2024   BR1   BR1(dhcp-config)#network 172.16.2.0 255.255.255.0
+Fri Oct 18 09:37:20 2024   BR1   BR1(dhcp-config)#default-router 172.16.2.1
+Fri Oct 18 09:38:29 2024   BR1   BR1(dhcp-config)#dns-server 192.168.10.3
+Fri Oct 18 09:38:32 2024   BR1   BR1(dhcp-config)#exit
+Fri Oct 18 09:39:14 2024   BR1   BR1(config)#ip dhcp excluded-address 172.16.2.1 172.16.2.10
+
+Fri Oct 18 09:39:27 2024   BR1   BR1(config)#ip dhcp pool officer
+Fri Oct 18 09:39:35 2024   BR1   BR1(dhcp-config)#network 172.16.3.0 255.255.255.0
+Fri Oct 18 09:39:40 2024   BR1   BR1(dhcp-config)#default-router 172.16.3.1
+Fri Oct 18 09:39:45 2024   BR1   BR1(dhcp-config)#dns-server 192.168.10.3
+Fri Oct 18 09:39:46 2024   BR1   BR1(dhcp-config)#exit
+Fri Oct 18 09:39:55 2024   BR1   BR1(config)#ip dhcp excluded-address 172.16.3.1 172.16.3.10
+
+7. EtherChannel
+===========================================
+PAgP----------------
+Fri Oct 18 09:51:22 2024   BR1-ALSW1   BR1-ALSW1(config)#int range f0/2-3
+Fri Oct 18 09:51:27 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#channel-group 1 mode desirable 
+Fri Oct 18 09:51:29 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#exit
+
+Fri Oct 18 09:52:22 2024   BR1-ALSW1   BR1-ALSW1(config)#int port-channel 1
+Fri Oct 18 09:52:30 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport mode trunk 
+Fri Oct 18 09:52:35 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport trunk native vlan 9
+Fri Oct 18 09:52:40 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport nonegotiate 
+Fri Oct 18 09:52:53 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport trunk allowed vlan 2,3,4,5,9
+Fri Oct 18 09:52:57 2024   BR1-ALSW1   BR1-ALSW1(config-if)#exit
+
+Fri Oct 18 09:53:08 2024   BR1-Core   BR1-Core(config)#interface port-channel 1
+Fri Oct 18 09:53:14 2024   BR1-Core   BR1-Core(config-if)#switchport trunk encapsulation dot1q 
+Fri Oct 18 09:53:17 2024   BR1-Core   BR1-Core(config-if)#switchport mode trunk 
+Fri Oct 18 09:53:21 2024   BR1-Core   BR1-Core(config-if)#switchport trunk native vlan 9
+Fri Oct 18 09:53:27 2024   BR1-Core   BR1-Core(config-if)#ex
+
+Fri Oct 18 09:53:31 2024   BR1-Core   BR1-Core(config)#int range f0/2-3
+Fri Oct 18 09:53:39 2024   BR1-Core   BR1-Core(config-if-range)#channel-group 1 mode auto 
+Fri Oct 18 09:56:19 2024   BR1-Core   BR1-Core(config-if-range)#ex
+
+LACP---------------------
+Fri Oct 18 10:00:10 2024   BR1-ALSW2   BR1-ALSW2(config)#int range f0/9-10
+Fri Oct 18 10:00:18 2024   BR1-ALSW2   BR1-ALSW2(config-if-range)#channel-group 2 mode active 
+Fri Oct 18 10:00:19 2024   BR1-ALSW2   BR1-ALSW2(config-if-range)#ex
+Fri Oct 18 10:00:21 2024   BR1-ALSW2   BR1-ALSW2(config)#int port-channel 2
+Fri Oct 18 10:00:26 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport mode trunk 
+Fri Oct 18 10:00:34 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport trunk native vlan 9
+Fri Oct 18 10:00:39 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport trunk allowed vlan 2,3,4,5,9
+Fri Oct 18 10:00:41 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport nonegotiate 
+Fri Oct 18 10:00:42 2024   BR1-ALSW2   BR1-ALSW2(config-if)#ex
+Fri Oct 18 10:00:47 2024   BR1-Core   BR1-Core(config-if-range)#ex
+
+Fri Oct 18 10:00:49 2024   BR1-Core   BR1-Core(config)#interface port-channel 2
+Fri Oct 18 10:00:54 2024   BR1-Core   BR1-Core(config-if)#switchport trunk encapsulation dot1q 
+Fri Oct 18 10:00:57 2024   BR1-Core   BR1-Core(config-if)#switchport mode trunk 
+Fri Oct 18 10:01:01 2024   BR1-Core   BR1-Core(config-if)#switchport trunk native vlan 9
+Fri Oct 18 10:01:08 2024   BR1-Core   BR1-Core(config-if)#switchport nonegotiate 
+Fri Oct 18 10:01:09 2024   BR1-Core   BR1-Core(config-if)#ex
+
+Fri Oct 18 10:01:16 2024   BR1-Core   BR1-Core(config)#interface range f0/9-10
+Fri Oct 18 10:01:27 2024   BR1-Core   BR1-Core(config-if-range)#channel-group 2 mode passive 
+Fri Oct 18 10:01:31 2024   BR1-Core   BR1-Core(config-if-range)#ex
+
+Fri Oct 18 10:02:41 2024   BR1-Core   BR1-Core#sh etherchannel summary
+
+Fri Oct 18 10:09:12 2024   BR1-Core   BR1-Core(config)#interface port-channel 1
+Fri Oct 18 10:09:21 2024   BR1-Core   BR1-Core(config-if)#switchport trunk allowed vlan 2,3,4,5,9
+Fri Oct 18 10:09:22 2024   BR1-Core   BR1-Core(config-if)#ex
+Fri Oct 18 10:11:16 2024   BR1-Core   BR1-Core(config)#interface port-channel 2
+Fri Oct 18 10:11:18 2024   BR1-Core   BR1-Core(config-if)#switchport trunk allowed vlan 2,3,4,5,9
+Fri Oct 18 10:11:20 2024   BR1-Core   BR1-Core(config-if)#ex
+
+
+Fri Oct 18 10:11:35 2024   BR1-Core   BR1-Core(config)#do sh ether sum
+
+8. Wireless
+==========================================
+
+Fri Oct 18 10:31:34 2024   BR1-ALSW1   BR1-ALSW1(config)#int g0/1
+Fri Oct 18 10:31:37 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport mode trunk 
+Fri Oct 18 10:31:40 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport trunk native vlan 9
+Fri Oct 18 10:31:47 2024   BR1-ALSW1   BR1-ALSW1(config-if)#switchport nonegotiate 
+Fri Oct 18 10:31:49 2024   BR1-ALSW1   BR1-ALSW1(config-if)#ex
+
+Fri Oct 18 10:32:00 2024   BR1-ALSW2   BR1-ALSW2(config)#int g0/1
+Fri Oct 18 10:32:01 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport mode trunk 
+Fri Oct 18 10:32:05 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport trunk native vlan 9
+Fri Oct 18 10:32:06 2024   BR1-ALSW2   BR1-ALSW2(config-if)#switchport nonegotiate 
+Fri Oct 18 10:32:07 2024   BR1-ALSW2   BR1-ALSW2(config-if)#ex
+
+Fri Oct 18 10:32:17 2024   BR1-Core   BR1-Core(config)#int g0/1
+Fri Oct 18 10:32:24 2024   BR1-Core   BR1-Core(config-if)#switchport trunk encapsulation dot1q 
+Fri Oct 18 10:32:26 2024   BR1-Core   BR1-Core(config-if)#switchport mode trunk 
+Fri Oct 18 10:32:30 2024   BR1-Core   BR1-Core(config-if)#switchport trunk native vlan 9
+Fri Oct 18 10:32:30 2024   BR1-Core   BR1-Core(config-if)#ex
+
+On WLC,
+a. plugin the power adapter on LWAP. it should rececive IP from dhcp pool. 
+b. put IP on management port from the wireless network.  
+c. create dhcp pool on wlc 
+d. create SSID password. Assign WLAN on AP group. 
+e. put SSID-password on wireless devices and they should be connected.
+
+9. BASIC IP COnfiguration
+===============================================
+Fri Oct 18 10:45:28 2024   ISP   Router>en
+Fri Oct 18 10:45:29 2024   ISP   Router#conf t
+Fri Oct 18 10:45:44 2024   ISP   Router(config)#hostname ISP
+Fri Oct 18 10:45:47 2024   ISP   ISP(config)#int g0/0
+Fri Oct 18 10:45:52 2024   ISP   ISP(config-if)#ip add 8.8.8.1 255.0.0.0
+Fri Oct 18 10:46:27 2024   ISP   ISP(config-if)#description DEMO INTERNET
+Fri Oct 18 10:46:29 2024   ISP   ISP(config-if)#no sh
+Fri Oct 18 10:46:30 2024   ISP   ISP(config-if)#ex
+
+Fri Oct 18 10:46:33 2024   ISP   ISP(config)#int s0/3/0
+Fri Oct 18 10:46:40 2024   ISP   ISP(config-if)#ip add 11.11.11.1 255.255.255.252
+Fri Oct 18 10:46:44 2024   ISP   ISP(config-if)#no shutdown 
+Fri Oct 18 10:46:50 2024   ISP   ISP(config-if)#description Link to BR1
+Fri Oct 18 10:46:51 2024   ISP   ISP(config-if)#ex
+
+Fri Oct 18 10:47:15 2024   BR1   BR1(config)#int s0/2/0
+Fri Oct 18 10:47:24 2024   BR1   BR1(config-if)#ip add 11.11.11.2 255.255.255.252
+Fri Oct 18 10:47:43 2024   BR1   BR1(config-if)#description Link to ISP
+Fri Oct 18 10:47:44 2024   BR1   BR1(config-if)#no sh
+Fri Oct 18 10:47:45 2024   BR1   BR1(config-if)#ex
+
+Fri Oct 18 10:47:50 2024   BR1   BR1(config)#int s0/2/1
+Fri Oct 18 10:48:00 2024   BR1   BR1(config-if)#ip add 192.168.11.1 255.255.255.252
+Fri Oct 18 10:48:07 2024   BR1   BR1(config-if)#description Link to BR2
+Fri Oct 18 10:48:09 2024   BR1   BR1(config-if)#no sh
+Fri Oct 18 10:48:10 2024   BR1   BR1(config-if)#ex
+
+Fri Oct 18 10:48:23 2024   BR2   Router>en
+Fri Oct 18 10:48:25 2024   BR2   Router#conf t
+Fri Oct 18 10:48:26 2024   BR2   Router(config)#hostname BR2
+Fri Oct 18 10:48:32 2024   BR2   BR2(config)#int s0/0/0
+Fri Oct 18 10:48:42 2024   BR2   BR2(config-if)#ip add 192.168.11.2 255.255.255.252
+Fri Oct 18 10:48:46 2024   BR2   BR2(config-if)#description Link to BR1
+Fri Oct 18 10:48:47 2024   BR2   BR2(config-if)#no sh
+Fri Oct 18 10:48:48 2024   BR2   BR2(config-if)#ex
+Fri Oct 18 10:48:51 2024   BR2   BR2(config)#int g0/0
+Fri Oct 18 10:49:00 2024   BR2   BR2(config-if)#ip add 192.168.10.1 255.255.255.0
+Fri Oct 18 10:49:05 2024   BR2   BR2(config-if)#description Server LAN
+Fri Oct 18 10:49:07 2024   BR2   BR2(config-if)#no sh
+Fri Oct 18 10:49:07 2024   BR2   BR2(config-if)#ex
+
+10. Static Routing
+===============================================
+Fri Oct 18 10:51:46 2024   BR1   BR1(config)#ip route 0.0.0.0 0.0.0.0 11.11.11.1
+
+11. OSPF Config
+=================================================
+Fri Oct 18 10:57:42 2024   BR1   BR1(config)#do sh ip route connected
+Fri Oct 18 10:57:53 2024   BR1   BR1(config)#router ospf 110
+Fri Oct 18 10:58:06 2024   BR1   BR1(config-router)#network 172.16.2.0 0.0.0.255 area 0
+Fri Oct 18 10:58:10 2024   BR1   BR1(config-router)#network 172.16.3.0 0.0.0.255 area 0
+Fri Oct 18 10:58:14 2024   BR1   BR1(config-router)#network 172.16.4.0 0.0.0.255 area 0
+Fri Oct 18 10:58:18 2024   BR1   BR1(config-router)#network 172.16.5.0 0.0.0.255 area 0
+Fri Oct 18 10:58:22 2024   BR1   BR1(config-router)#network 172.16.9.0 0.0.0.255 area 0
+Fri Oct 18 10:58:35 2024   BR1   BR1(config-router)#network 192.168.11.0 0.0.0.3 area 0
+Fri Oct 18 11:46:08 2024   BR1   BR1(config-router)#net 172.16.6.0 0.0.0.127 area 0
+Fri Oct 18 11:46:13 2024   BR1   BR1(config-router)#passive-interface g0/0.6
+Fri Oct 18 10:59:12 2024   BR1   BR1(config-router)#passive-interface g0/0.2
+Fri Oct 18 10:59:16 2024   BR1   BR1(config-router)#passive-interface g0/0.3
+Fri Oct 18 10:59:19 2024   BR1   BR1(config-router)#passive-interface g0/0.4
+Fri Oct 18 10:59:21 2024   BR1   BR1(config-router)#passive-interface g0/0.5
+Fri Oct 18 10:59:22 2024   BR1   BR1(config-router)#passive-interface g0/0.9
+Fri Oct 18 10:59:29 2024   BR1   BR1(config-router)#default-information originate 
+Fri Oct 18 10:59:49 2024   BR1   BR1(config-router)#ex
+
+Fri Oct 18 10:59:58 2024   BR2   BR2(config)#do show ip route connected
+Fri Oct 18 11:00:05 2024   BR2   BR2(config)#router ospf 110
+Fri Oct 18 11:00:14 2024   BR2   BR2(config-router)#network 192.168.10.0 0.0.0.255 area 0
+Fri Oct 18 11:00:21 2024   BR2   BR2(config-router)#network 192.168.11.0 0.0.0.3 area 0
+Fri Oct 18 11:00:26 2024   BR2   BR2(config-router)#passive-interface g0/0
+Fri Oct 18 11:00:28 2024   BR2   BR2(config-router)#exit
+
+
+12. Block Private IP Access to INternet
+====================================================
+Fri Oct 18 11:02:54 2024   ISP   ISP(config)#ip access-list standard Block-Private-IP
+Fri Oct 18 11:03:53 2024   ISP   ISP(config-std-nacl)#deny 10.0.0.0 0.255.255.255
+Fri Oct 18 11:04:01 2024   ISP   ISP(config-std-nacl)#deny 172.16.0.0 0.15.255.255
+Fri Oct 18 11:04:09 2024   ISP   ISP(config-std-nacl)#deny 192.168.0.0 0.0.255.255
+Fri Oct 18 11:04:13 2024   ISP   ISP(config-std-nacl)#permit any
+Fri Oct 18 11:04:14 2024   ISP   ISP(config-std-nacl)#exit
+
+Fri Oct 18 11:04:32 2024   ISP   ISP(config)#int s0/3/0
+Fri Oct 18 11:04:43 2024   ISP   ISP(config-if)#ip access-group Block-Private-IP in
+Fri Oct 18 11:04:44 2024   ISP   ISP(config-if)#exit
+
+13. Dynamic NAT
+====================================================
+Fri Oct 18 11:10:07 2024   BR1   BR1(config)#ip nat pool PUBLIC-IP 112.16.32.1 112.16.32.4 netmask 255.255.255.248
+
+Fri Oct 18 11:11:10 2024   BR1   BR1(config)#ip access-list standard NAT-Eligible
+Fri Oct 18 11:11:45 2024   BR1   BR1(config-std-nacl)#permit 172.16.2.0 0.0.0.255
+Fri Oct 18 11:11:49 2024   BR1   BR1(config-std-nacl)#permit 172.16.3.0 0.0.0.255
+Fri Oct 18 11:12:10 2024   BR1   BR1(config-std-nacl)#deny any
+Fri Oct 18 11:12:12 2024   BR1   BR1(config-std-nacl)#exit
+
+Fri Oct 18 11:13:02 2024   BR1   BR1(config)#ip nat inside source list NAT-Eligible pool PUBLIC-IP
+
+Fri Oct 18 11:15:11 2024   BR1   BR1(config)#int s0/2/0
+Fri Oct 18 11:15:14 2024   BR1   BR1(config-if)#ip nat outside 
+Fri Oct 18 11:15:14 2024   BR1   BR1(config-if)#ex
+
+Fri Oct 18 11:16:17 2024   BR1   BR1(config)#int g0/0.2
+Fri Oct 18 11:16:20 2024   BR1   BR1(config-subif)#ip nat inside
+Fri Oct 18 11:16:21 2024   BR1   BR1(config-subif)#ex
+Fri Oct 18 11:16:27 2024   BR1   BR1(config)#int g0/0.3
+Fri Oct 18 11:16:35 2024   BR1   BR1(config-subif)#ip nat inside
+Fri Oct 18 11:16:35 2024   BR1   BR1(config-subif)#ex
+255.248 11.11.11.2
+Fri Oct 18 11:20:54 2024   BR1   BR1(config)#do sh ip nat translation
+
+PAT COnfig
+========================================
+Fri Oct 18 11:23:45 2024   BR1   BR1(config)#ip access-list standard PAT-LIST
+Fri Oct 18 11:23:58 2024   BR1   BR1(config-std-nacl)#permit 192.168.10.0 0.0.0.255
+Fri Oct 18 11:24:02 2024   BR1   BR1(config-std-nacl)#ex
+
+Fri Oct 18 11:25:05 2024   BR1   BR1(config)#ip nat inside source list PAT-LIST int s0/2/0 overload
+ 
+Fri Oct 18 11:25:22 2024   BR1   BR1(config)#int s0/2/1
+Fri Oct 18 11:25:25 2024   BR1   BR1(config-if)#ip nat inside 
+Fri Oct 18 11:25:27 2024   BR1   BR1(config-if)#ex
+Fri Oct 18 11:25:31 2024   BR1   BR1(config)#int s0/2/0
+Fri Oct 18 11:25:34 2024   BR1   BR1(config-if)#ip nat outside 
+Fri Oct 18 11:25:35 2024   BR1   BR1(config-if)#ex
+
+14. NTP and SYSLOG
+=======================================
+Fri Oct 18 11:29:26 2024   BR1   BR1(config)#ntp server 192.168.10.4
+Fri Oct 18 11:29:28 2024   BR1   BR1(config)#ntp update-calendar 
+
+Fri Oct 18 11:29:39 2024   BR1   BR1(config)#logging 192.168.10.4
+Fri Oct 18 11:29:49 2024   BR1   BR1(config)#service timestamps log datetime msec
+
+
+15. Extended ACL
+========================================== 
+Fri Oct 18 11:31:44 2024   BR1   BR1(config)#ip access-list extended Block-Browse
+Fri Oct 18 11:33:09 2024   BR1   BR1(config-ext-nacl)#deny tcp 172.16.3.0 0.0.0.255 192.168.10.2 0.0.0.0 eq 80
+Fri Oct 18 11:33:34 2024   BR1   BR1(config-ext-nacl)#permit ip any any
+Fri Oct 18 11:33:36 2024   BR1   BR1(config-ext-nacl)#exit
+
+Fri Oct 18 11:33:58 2024   BR1   BR1(config)#int g0/0.3
+Fri Oct 18 11:34:17 2024   BR1   BR1(config-subif)#ip access-group Block-Browse in
+Fri Oct 18 11:34:17 2024   BR1   BR1(config-subif)#ex
+
+16. SSH
+======================================
+Fri Oct 18 11:39:49 2024   BR1   BR1(config)#ip domain-name ice.edu
+Fri Oct 18 11:40:16 2024   BR1   BR1(config)#crypto key generate rsa 
+Fri Oct 18 11:40:49 2024   BR1   BR1(config)#ip ssh version 2
+Fri Oct 18 11:41:00 2024   BR1   BR1(config)#ip ssh time-out 60
+Fri Oct 18 11:41:14 2024   BR1   BR1(config)#ip ssh authentication-retries 3
+Fri Oct 18 11:41:57 2024   BR1   BR1(config)#username abul secret abul123
+Fri Oct 18 11:42:09 2024   BR1   BR1(config)#username kuddus secret kuddus123
+Fri Oct 18 11:42:34 2024   BR1   BR1(config)#line vty 0 4
+Fri Oct 18 11:43:12 2024   BR1   BR1(config-line)#transport input ssh
+Fri Oct 18 11:43:19 2024   BR1   BR1(config-line)#login local
+Fri Oct 18 11:43:27 2024   BR1   BR1(config-line)#exit
+
+Fri Oct 18 11:44:37 2024   BR1   BR1(config)#enable secret ccna
+
+check ssh: PC>desktop>command prompt: ssh -l username IP
+
++ configur on other devices. 
+Management VLAN
+======================================
+
+Fri Oct 18 11:46:31 2024   BR1-Core   BR1-Core(config)#enable secret ccna
+Fri Oct 18 11:46:34 2024   BR1-Core   BR1-Core(config)#line vty 0 4
+Fri Oct 18 11:46:37 2024   BR1-Core   BR1-Core(config-line)#password cisco
+Fri Oct 18 11:46:39 2024   BR1-Core   BR1-Core(config-line)#login
+Fri Oct 18 11:46:41 2024   BR1-Core   BR1-Core(config-line)#exit
+
+Fri Oct 18 11:46:49 2024   BR1-Core   BR1-Core(config)#interface vlan 6
+Fri Oct 18 11:47:02 2024   BR1-Core   BR1-Core(config-if)#ip add 172.16.6.5 255.255.255.128
+Fri Oct 18 11:47:05 2024   BR1-Core   BR1-Core(config-if)#no sh
+Fri Oct 18 11:47:05 2024   BR1-Core   BR1-Core(config-if)#ex
+
+Fri Oct 18 11:48:28 2024   BR1-Core   BR1-Core(config)#ip default-gateway 172.16.6.1
+
++ configur on other devices. 
+17. LAN Security
+========================================
+Fri Oct 18 11:49:59 2024   BR1-ALSW1   BR1-ALSW1(config)#int range f0/1, f0/4
+Fri Oct 18 11:50:02 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport port-security 
+Fri Oct 18 11:50:10 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport port-security mac-address sticky 
+Fri Oct 18 11:50:16 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport port-security maximum 1
+Fri Oct 18 11:50:21 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport port-security violation shutdown 
+Fri Oct 18 11:50:36 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#spanning-tree portfast 
+Fri Oct 18 11:50:42 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#spanning-tree bpduguard enable 
+Fri Oct 18 11:51:09 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#exit
+
+Fri Oct 18 11:51:29 2024   BR1-ALSW1   BR1-ALSW1(config)#int range f0/5-6, f0/8-24, g0/2
+Fri Oct 18 11:51:43 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport mode access 
+Fri Oct 18 11:51:45 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#switchport nonegotiate 
+Fri Oct 18 11:51:50 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#shutdown 
+Fri Oct 18 11:51:51 2024   BR1-ALSW1   BR1-ALSW1(config-if-range)#exit
+
+follow module 2 review file more details***
+
+18. RSTP MODE
+===========================
+Fri Oct 18 11:52:13 2024   BR1-Core   BR1-Core(config)#spanning-tree mode rapid-pvst 
+Fri Oct 18 11:52:17 2024   BR1-ALSW1   BR1-ALSW1(config)#spanning-tree mode rapid-pvst 
+Fri Oct 18 11:52:26 2024   BR1-ALSW2   BR1-ALSW2(config)#spanning-tree mode rapid-pvst 
+Fri Oct 18 11:53:15 2024   BR1-Core   BR1-Core(config)#do sh spa sum
+
+19. Backup on TFTP server
+==================================
+Fri Oct 18 11:55:26 2024   BR1   BR1#copy running-config tftp:
+Address or name of remote host []? 192.168.10.3
+Destination filename [BR1-confg]? 
+
+Writing running-config...!!
+[OK - 3529 bytes]
+
+3529 bytes copied in 0.016 secs (220562 bytes/sec) 
+
+backup for other devices as well. 
+
+=============================
